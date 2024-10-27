@@ -35,19 +35,6 @@ y = data['label']
 
 model.fit(x, y, epochs=10, batch_size=4, validation_split=0.2)
 
-# def detect_traffic_by_route(route_data):
-#     prediction = model.predict(route_data)
-#     label = prediction.argmax() # 0 = fluide, 1 = congestion légère, 2 = congestion importante
-#     return label
-#
-# def get_aleternative_routes(data):
-#     recommended_routes = []
-#     for route in data['route_id'].unique():
-#         label = detect_traffic_by_route(data[data['route_id'] == route])
-#         if label > 0:
-#             recommended_routes.append(route)
-#     return recommended_routes
-
 def send_route_alert(route, label, alternatives):
     alert_message = {
         "route_id": route,

@@ -1,89 +1,77 @@
+import random
+
 import sumolib
 import traci
-import json
 import requests
-import random
 import time
+import json
 
-# Configuration for SUMO simulation
-sumo_config_path = r"C:\Users\USER\Sumo\2024-10-26-10-29-57\osm.sumocfg"
 
-# FastAPI server URL to send data
-server_url = "http://localhost:8081/traffic-data"
+sumo_config_path = r"C:\Users\USER\Sumo\2024-10-26-09-35-20\osm.sumocfg"
 
-# Create a set to track unique vehicle IDs
+url = 'http://localhost:8080'
+
+traci.start(['sumo-gui', '-c', sumo_config_path])
+
 unique_vehicle_ids = set()
 
-def run_simulation():
-    # Start SUMO GUI
-    traci.start(['sumo-gui', '-c', sumo_config_path])
+while traci.simulation.getMinExpectedNumber() > 0:
+    traci.simulationStep()
 
-    global latest_traffic_data  # Store data here for server GET requests
+    # Get the current simulation time
+    current_time = traci.simulation.getTime()
 
-    try:
-        while traci.simulation.getMinExpectedNumber() > 0:
-            traci.simulationStep()
+    # Get the current list of vehicle IDs in the simulation
+    vehicle_ids = traci.vehicle.getIDList()
 
-            # Get the current simulation time
-            current_time = traci.simulation.getTime()
+    # Add only new vehicle IDs to the set
+    for vehicle_id in vehicle_ids:
+        unique_vehicle_ids.add(vehicle_id)  # Duplicates are automatically ignored in a set
 
-            # Get the current list of vehicle IDs in the simulation
-            vehicle_ids = traci.vehicle.getIDList()
+    # Calculate average speed of all vehicles
+    total_speed = 0.0
+    vehicle_count = len(vehicle_ids)  # Total number of vehicles in the current step
 
-            # Add only new vehicle IDs to the set
-            for vehicle_id in vehicle_ids:
-                unique_vehicle_ids.add(vehicle_id)
+    lane_vehicle_count = {}  # Dictionary to store vehicle count per lane
+    for vehicle_id in vehicle_ids:
+        speed = traci.vehicle.getSpeed(vehicle_id)
+        total_speed += speed
 
-            # Calculate average speed of all vehicles
-            total_speed = 0.0
-            vehicle_count = len(vehicle_ids)
+        # Get lane ID of each vehicle and count vehicles per lane
+        lane_id = traci.vehicle.getLaneID(vehicle_id)
+        if lane_id in lane_vehicle_count:
+            lane_vehicle_count[lane_id] += 1
+        else:
+            lane_vehicle_count[lane_id] = 1
 
-            lane_vehicle_count = {}
-            for vehicle_id in vehicle_ids:
-                speed = traci.vehicle.getSpeed(vehicle_id)
-                total_speed += speed
+    # Calculate the average speed (avoid division by zero)
+    avg_speed = total_speed / vehicle_count if vehicle_count > 0 else 0
 
-                # Get lane ID of each vehicle and count vehicles per lane
-                lane_id = traci.vehicle.getLaneID(vehicle_id)
-                lane_vehicle_count[lane_id] = lane_vehicle_count.get(lane_id, 0) + 1
+    # Length of the set gives the unique vehicle count
+    unique_vehicle_count = len(unique_vehicle_ids)
 
-            # Calculate the average speed
-            avg_speed = total_speed / vehicle_count if vehicle_count > 0 else 0
+    # Calculate traffic density for each lane and prepare JSON data
+    data_to_send = []
+    for lane_id, count in lane_vehicle_count.items():
+        lane_length = traci.lane.getLength(lane_id)
+        density = (count / lane_length) * 10 if lane_length > 0 else 0
 
-            # Prepare data to send
-            data_to_send = []
-            for lane_id, count in lane_vehicle_count.items():
-                lane_length = traci.lane.getLength(lane_id)
-                density = count / lane_length if lane_length > 0 else 0
+        # Generate a random unique ID (float or integer)
+        unique_id = random.randint(1000, 9999)  # For integer unique ID
+        # unique_id = round(random.uniform(1.0, 9.9), 2)  # For float unique ID, adjust range as needed
 
-                # Generate a random unique ID (float or integer)
-                unique_id = random.randint(1000, 9999)  # For integer unique ID
-                # unique_id = round(random.uniform(1.0, 9.9), 2)  # For float unique ID, adjust range as needed
+        # Prepare data as JSON object
+        route_data = {
+            "route_id": float(unique_id),
+            "vehicle_count": count,
+            "avg_speed": avg_speed,
+            "traffic_density": density,
+            "timestamp": current_time
+        }
+        data_to_send.append(route_data)
+        print(route_data)
 
-                # Concatenate lane_id with the unique ID
-                unique_lane_id = f"{lane_id}-{unique_id}"
+        with open("sumo1.json", "w", encoding="utf-8") as outfile:
+            json.dump(data_to_send, outfile)
 
-                # Prepare data as JSON object
-                route_data = {
-                    "route_id": unique_id,
-                    "lane_id":  lane_id,
-                    "vehicle_count": count,
-                    "avg_speed": avg_speed,
-                    "traffic_density": density,
-                    "timestamp": current_time
-                }
-                data_to_send.append(route_data)
-
-            # Send data to FastAPI server
-            requests.post(server_url, json=data_to_send)
-
-            with open("sumo1.json", "w", encoding="utf-8") as outfile:
-                json.dump(data_to_send, outfile)
-
-        time.sleep(1)
-    finally:
-        traci.close()
-
-# Entry point to start the simulation
-if __name__ == "__main__":
-    run_simulation()
+    time.sleep(0.1)
