@@ -9,7 +9,7 @@ import time
 import json
 
 
-with open("sumo.json", "r") as f:
+with open("sumo1.json", "r") as f:
     traffic_data = json.load(f)
 
 data_df = pd.DataFrame(traffic_data)

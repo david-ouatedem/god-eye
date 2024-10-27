@@ -2,6 +2,8 @@ import sumolib
 import traci
 import json
 import requests
+import random
+import time
 
 # Configuration for SUMO simulation
 sumo_config_path = r"C:\Users\USER\Sumo\2024-10-26-10-29-57\osm.sumocfg"
@@ -54,9 +56,17 @@ def run_simulation():
                 lane_length = traci.lane.getLength(lane_id)
                 density = count / lane_length if lane_length > 0 else 0
 
+                # Generate a random unique ID (float or integer)
+                unique_id = random.randint(1000, 9999)  # For integer unique ID
+                # unique_id = round(random.uniform(1.0, 9.9), 2)  # For float unique ID, adjust range as needed
+
+                # Concatenate lane_id with the unique ID
+                unique_lane_id = f"{lane_id}-{unique_id}"
+
                 # Prepare data as JSON object
                 route_data = {
-                    "route_id": lane_id,
+                    "route_id": unique_id,
+                    "lane_id":  lane_id,
                     "vehicle_count": count,
                     "avg_speed": avg_speed,
                     "traffic_density": density,
@@ -67,6 +77,10 @@ def run_simulation():
             # Send data to FastAPI server
             requests.post(server_url, json=data_to_send)
 
+            with open("sumo1.json", "w", encoding="utf-8") as outfile:
+                json.dump(data_to_send, outfile)
+
+        time.sleep(1)
     finally:
         traci.close()
 

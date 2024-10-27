@@ -8,7 +8,8 @@ import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 
 // Define the TrafficData interface
 interface TrafficData {
-  route_id: string;
+  route_id: number;
+  lane_id: string;
   vehicle_count: number;
   avg_speed: number;
   traffic_density: number;
