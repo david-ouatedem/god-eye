@@ -7,11 +7,13 @@ import time
 import json
 
 
-sumo_config_path = r"C:\Users\USER\Sumo\2024-10-26-09-35-20\osm.sumocfg"
+sumo_config_path = r"C:\Users\USER\Sumo\2024-10-26-10-29-57\osm.sumocfg"
 
 url = 'http://localhost:8080'
 
 traci.start(['sumo-gui', '-c', sumo_config_path])
+
+server_url = "http://localhost:8081/traffic-data"
 
 unique_vehicle_ids = set()
 
@@ -69,7 +71,7 @@ while traci.simulation.getMinExpectedNumber() > 0:
             "timestamp": current_time
         }
         data_to_send.append(route_data)
-        print(route_data)
+        requests.post(server_url, json=data_to_send)
 
         with open("sumo1.json", "w", encoding="utf-8") as outfile:
             json.dump(data_to_send, outfile)

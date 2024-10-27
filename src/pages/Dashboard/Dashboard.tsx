@@ -60,7 +60,7 @@ export default function Dashboard() {
   // Set an interval to fetch data every 10 seconds
   useEffect(() => {
     fetchTrafficData(); // Initial fetch
-    const intervalId = setInterval(fetchTrafficData, 10000); // Fetch data every 10 seconds
+    const intervalId = setInterval(fetchTrafficData, 1000); // Fetch data every 10 seconds
     return () => clearInterval(intervalId); // Clear interval on component unmount
   }, []);
 

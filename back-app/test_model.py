@@ -3,13 +3,9 @@ import pandas as pd
 from pandas.core.interchange.dataframe_protocol import DataFrame
 from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
-import sumolib
-import traci
-import requests
 import time
 import json
 
-from tensorflow.python.ops.functional_ops import While
 
 while True:
     try:
